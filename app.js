@@ -1,214 +1,76 @@
-const express = require('express');
-const cors = require('cors');
-const {MongoClient} = require('mongodb');
-const fileupload = require('express-fileupload');
-const nodemailer = require('nodemailer');
+import React, { useState, useEffect } from 'react';
+import './App.css'; // Import CSS file
+import celebrateImage from './image5.jpg'; // Import the image
 
-const app = express();
-app.use(express.json());
-app.use(cors());
-app.use(fileupload());
+function App() {
+  const [birthdayText, setBirthdayText] = useState("Happy Birthday!");
+  const [inputValue, setInputValue] = useState(""); // State to hold the input value
+  const [showNotification, setShowNotification] = useState(false); // State to manage notification visibility
 
-const PORT = process.env.PORT || 5000;
+  const handleInputChange = (event) => {
+    setInputValue(event.target.value); // Update the input value as the user types
+  };
 
-app.listen(PORT, console.log(`Server running on the port number ${PORT}`));
+  const handleWishSubmit = () => {
+    // Add logic here to handle the submission of the wish
+    console.log(`Wish from ${inputValue}: ${birthdayText}`);
+    setInputValue(""); // Clear the input field after submission
+    setShowNotification(true); // Show the notification
+    setTimeout(() => {
+      setShowNotification(false); // Hide the notification after 3 seconds
+    }, 3000);
+  };
 
-function authentication(req, res, next)
-{
-    var authHeader = req.headers.authorization;
-    if(!authHeader)
-        return res.json("Unauthorized access").status(401);
+  useEffect(() => {
+    const messages = [
+      "Happy birthday ra manikanta",
+      "chala ga undu mawa",
+      "ado okati party mukyam biggulu",
+      "Happy birthday ra manikanta"
+    ];
 
-    var auth = new Buffer.from(authHeader.split(' ')[1],'base64').toString().split(':');
-    var username = auth[0];
-    var password = auth[1];
-    if(username==='admin' && password==='123456')
-        next();
-    else
-        return res.json("Unauthorized access").status(401);
+    const intervalId = setInterval(() => {
+      const randomIndex = Math.floor(Math.random() * messages.length);
+      setBirthdayText(messages[randomIndex]);
+    }, 3000); // Change text every 3 seconds
+
+    return () => clearInterval(intervalId);
+  }, []); // Run effect only once on component mount
+
+  return (
+    <div className="App">
+      <header className="App-header">
+        <div className="greeting">
+          <h1 className="scrolling-text">{birthdayText}</h1>
+          <p>Wishing you a fantastic day filled with joy and laughter.</p>
+          <p>May all your dreams and wishes come true!</p>
+          <p>Best wishes, Manikanta!</p>
+          <div className="centered-image">
+            <img src={celebrateImage} alt="Celebrate" className="celebrate-image" />
+          </div>
+        </div>
+      </header>
+      <footer className="footer">
+        <div className="emoji-scroll">
+          <p> Happy Birthday ra  😊🎉🎈🎂🎁</p>
+        </div>
+        <div className="input-container">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={handleInputChange}
+            placeholder="Your Name and Wish"
+          />
+          <button onClick={handleWishSubmit}>Submit</button>
+        </div>
+      </footer>
+      {showNotification && (
+        <div className="notification">
+          <p>{`${inputValue}  Happy birthday ra!`}</p>
+        </div>
+      )}
+    </div>
+  );
 }
 
-app.use(authentication);
-
-//Configuration (MONGODB)
-var curl = "mongodb://localhost:27017";
-var client = new MongoClient(curl); 
-
-//TESTING
-app.get('/klef/test', async function(req, res){
-    //res.send("Koneru Lakshmaiah Education Foundation");
-    res.json("Koneru Lakshmaiah Education Foundation");
-});
-
-app.post('/klef/cse', async function(req, res){
-    //res.json(req.body);
-    res.json("Computer Science and Engineering");
-});
-
-//REGISTRATION MODULE
-app.post('/registration/signup', async function(req, res){
-    try
-    {
-        conn = await client.connect();
-        db = conn.db('MSWD');
-        users = db.collection('users');
-        data = await users.insertOne(req.body);
-        conn.close();
-        res.json("Registered successfully...");
-    }catch(err)
-    {
-        res.json(err).status(404);
-    }
-});
-
-//LOGIN MODULE
-app.post('/login/signin', async function(req, res){
-    try
-    {
-        conn = await client.connect();
-        db = conn.db('MSWD');
-        users = db.collection('users');
-        data = await users.count(req.body);
-        conn.close();
-        res.json(data);
-    }catch(err)
-    {
-        res.json(err).status(404);
-    }
-});
-
-//HOME MODULE
-app.post('/home/uname', async function(req, res){
-    try
-    {
-        conn = await client.connect();
-        db = conn.db('MSWD');
-        users = db.collection('users');
-        data = await users.find(req.body, {projection:{firstname: true, lastname: true}}).toArray();
-        conn.close();
-        res.json(data);
-    }catch(err)
-    {
-        res.json(err).status(404);
-    }
-});
-
-app.post('/home/menu', async function(req, res){
-    try
-    {
-        conn = await client.connect();
-        db = conn.db('MSWD');
-        menu = db.collection('menu');
-        data = await menu.find({}).sort({mid:1}).toArray();
-        conn.close();
-        res.json(data);
-    }catch(err)
-    {
-        res.json(err).status(404);
-    }
-});
-
-app.post('/home/menus', async function(req, res){
-    try
-    {
-        conn = await client.connect();
-        db = conn.db('MSWD');
-        menus = db.collection('menus');
-        data = await menus.find(req.body).sort({smid:1}).toArray();
-        conn.close();
-        res.json(data);
-    }catch(err)
-    {
-        res.json(err).status(404);
-    }
-});
-
-//CHANGE PASSWORD
-app.post('/cp/updatepwd', async function(req, res){
-    try
-    {
-        conn = await client.connect();
-        db = conn.db('MSWD');
-        users = db.collection('users');
-        data = await users.updateOne({emailid : req.body.emailid}, {$set : {pwd : req.body.pwd}});
-        conn.close();
-        res.json("Password has been updated")
-    }catch(err)
-    {
-        res.json(err).status(404);
-    }
-});
-
-//MY PROFILE
-app.post('/myprofile/info', async function(req, res){
-    try
-    {
-        conn = await client.connect();
-        db = conn.db('MSWD');
-        users = db.collection('users');
-        data = await users.find(req.body).toArray();
-        conn.close();
-        res.json(data);
-    }catch(err)
-    {
-        res.json(err).status(404);
-    }
-});
-
-//FILE UPLOAD
-app.post('/uploaddp', async function(req, res){
-    try
-    {
-        if(!req.files)
-            return res.json("File not found");
-
-        let myfile = req.files.myfile;
-        var fname = req.body.fname;
-        myfile.mv('../src/images/photo/'+ fname +'.jpg', function(err){
-            if(err)
-                return res.json("File upload operation failed!");
-
-            res.json("File uploaded successfully...");
-        });
-
-        conn = await client.connect();
-        db = conn.db('MSWD');
-        users = db.collection('users');
-        data = await users.updateOne({emailid: fname},{$set : {imgurl: fname + '.jpg'}});
-        conn.close();
-    }catch(err)
-    {
-        res.json(err).status(404);
-    }
-});
-
-//EMAIL NOTIFICATION
-app.post('/sendemail', async function(req, res){
-    try
-    {
-        var transport = nodemailer.createTransport({
-            service: "gmail",
-            host: "smtp.gmail.com",
-            port: 445,
-            secure: true,
-            auth:{user: "kadiravanphd@gmail.com", pass: "arhffjsjtlhrvrlx"}
-        });
-
-        var emaildata = {
-            from: "kadiravanphd@gmail.com",
-            to: "kathirkadir@gmail.com",
-            subject: "Testing Email",
-            text: "This is a testing email message..."
-        };
-
-        transport.sendMail(emaildata, function(err, info){
-            if(err)
-                return res.json("Failed to sent Email");
-
-            res.json("Email sent successfully");
-        });
-    }catch(err)
-    {
-        res.json(err).status(404);
-    }
-});
+export default App;
